@@ -241,8 +241,7 @@ deactivate 정산
 @enduml
 ....
 
-
-[plantuml, diagram-classes, png]
+[blockdiag]
 ....
 @startuml
 participant 대출
