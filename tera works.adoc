@@ -1,0 +1,282 @@
+:toc:
+:numbered:
+
+= TERA WORKS 개발
+
+
+[CAUTION]
+.Java 8 사용
+Rombok 플러그인 문제로 Java 10 사용 불가. + 
+
+
+[IMPORTANT]
+.설정 파일 덮어쓰기 금지
+====
+test, stage, live 환경별로 설정 파일의 차이가 있음. +
+나중에는 profile 로 나누어야 할 듯...
+
+Profile 을 설정해야 <<Maven Repository 추가>>와 <<lombok plugin 설치>>가 필요 없어짐
+====
+
+== 인수인계문서
+
+link:https://docs.google.com/spreadsheets/d/1X6Y9ZfGJaRISMZPQyDfF-gyHn3aYWpS2V2ni3A7NxrA/edit#gid=0[Tera Works 인수인계 Excel]
+
+== Git Clone
+
+git clone https://github.com/terafunding/TERA_WORKS.git
+
+== intellij import
+
+File > Open
+
+TERA_WORK/tr-project 선택
+
+== Maven Repository 추가
+
+TERA_WORK/tr-project/pom.xml
+
+[source]
+====
+    <repositories>
+        <repository>
+            <id>osgeo</id>
+            <name>Open Source Geospatial Foundation Repository</name>
+            <url>http://download.osgeo.org/webdav/geotools/</url>
+        </repository>
+        <repository>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>boundless</id>
+            <name>Boundless Maven Repository</name>
+            <url>http://repo.boundlessgeo.com/main</url>
+        </repository>
+    </repositories>
+====
+
+== lombok plugin 설치
+tr-cron 프로젝트 com.terafunding.cron 패키지 Cron 클래스 에러 시
+
+link:http://countryxide.tistory.com/32:[블러그 참고]
+
+== mongdb 접속
+
+* 무선 LAN 불가
+* 10.10.1.x 망 유선 LAN 으로 접속
+* 용도: 외부 데이타 수집용
+
+== libreoffice 설치
+
+link:https://ko.libreoffice.org/[libreoffice 한국어 사이트]
+
+=== tr-cron-server > application.properties 설정 조정
+* Linux: 
+** jodconverter.officeHome=/usr/lib/libreoffice
+*  Mac
+** jodconverter.officeHome=/Applications/LibreOffice.app/Contents
+
+== tr-web
+
+[IMPORTANT]
+.사전 준비 사항
+====
+tr-stat-server가 구동되어 있어야 함
+====
+
+=== 실행시 자동으로 /login 으로 이동
+
+tr-security 프로젝트 com.terafunding.security.config 패키지 SecurityConfig 참고
+
+====
+[source, java]
+http.authorizeRequests()
+    .antMatchers("/login").anonymous()
+    .antMatchers("/static/**").permitAll()
+    .antMatchers("/open/**").permitAll()
+    .anyRequest().authenticated()
+    .and()
+    .formLogin().permitAll()
+        .loginPage("/login")
+        .failureUrl("/login?error")
+        .defaultSuccessUrl("/", true)
+        .and()
+    .logout().logoutSuccessUrl("/login?logout")
+        .permitAll();
+====
+
+== application.properties.iot & application.properties.std 는 [red]#사용하지 않음#
+
+== [red]#질문#
+
+==== spring.datasource.url 용도 
+
+* mysql://tera-test-cluster.cluster-cyzat0mkuyai.ap-northeast-2.rds.amazonaws.com/cfs2
+* Not Use: mysql://10.21.65.79:3306/cfs2
+* Not Use: mysql://14.63.173.26:3306/cfs2
+
+==== spring.data.mongodb.host 용도
+
+** 52.78.203.51
+** Not Use: 14.63.174.42
+** Not Use: localhost
+
+=== main 메서드 10개
+
+** server 에 있는 것만 사용
+
+
+=== ETC
+* 테스트용 ID / PW:
+** 100000
+** 카니발!샀다 (영문 상태)
+
+
+== JPA 사용
+
+* tr-cron-server
+* tr-stat-server
+
+== menu 구조
+* tr-project/tr-web/src/main/resources/static/data/json/menu.json
+
+
+== AWS Works Server
+
+* Pub IP: 13.125.79.11
+* Name: legacy-works
+
+== AWS CLI
+
+[tip]
+====
+fat jar 빌드는 로컬에서 진행하고 AWS 의 복사는 ftp 등을 이용해서 /home/works/app/lib/ 로 복사
+====
+
+.사전 작업: 서버의 /home/works/app/lib 로 3 개의 jar 파일 복사
+* image:filezilla_setting.png[fileZilla 설정]
+* image:filezilla.png[fileZilla 에서 파일 업로드]
+
+.ssh 접속
+* ssh -i ~/tera/tera-default.pem ec2-user@13.125.79.11
+
+.fileZilla 로 jar 업로드 시 불 필요
+* 사용자 전환: sudo su - works
+* jar 폴더: cd app/lib
+** pwd: /home/works/app/lib
+* 서비스 재시작으로 위해서는 works 에서 다시 ec2-user 로
+
+.서비스 재시작: root나 계정이나 sudo 로
+* sudo service wstat restart
+** (start | stop | restart)
+* sudo service wweb restart
+** (start | stop | restart)
+* sudo service wcron restart
+** (start | stop | restart)
+
+.ssh 접속 해체
+** exit
+
+== [고객관리 - 플러스리워드리스트] 소스 추적기
+
+=== Producer 소스 추적
+. 웹브라우저로 Work 접속
+. 고객관리 > 플러스리워드 접속
+. 검색창에 "2017-03" 입력 후 검색버튼 클릭
+.. 개발자 도구 Network 탭에서 [red]#plus-reward-list# 접속 확인
+.. header 정보에서 http://127.0.0.1:8080/stat/plus-reward-list 확인
+. IDEA 의 Run Dashboard 에서 WebApplication 선택
+.. Endpoints 탭 하단 Mappings 텝에서 /stat/{queryKey} 확인
+.. Method 컬럼 클릭으로 구현체로 이동 (StatController#getTotalQuery)
+. getStatQuery 호출 확인
+. mqHelper.send(regMap) 호출 확인
+. sendReal(input) 호출 확인
+. requester.send(inputMap, 0) 호출 후 (inputMap 에 plus-reward-list 를 물고 있음)
+. String reply = requester.recvStr(0); 확인
+
+=== SQL 추적(/tr-stat-service/src/main/resources/custom_sql.properties)
+. query-stat-plus-reward-list 확인
+. query-stat-plus-reward-list-count 확인
+
+=== Consumer 소스 역추적
+. StateRepository.java
+.. if ("plus-reward-list".equals(queryId)) 확인 in StateRepository.java
+.. public List<Map> convertQueryList(List<Object[]> queryList, String queryId)
+. StateService.java
+.. ret.put(MqResponseMessage.DATA, convertQueryList(queryList, queryId));
+.. public HashMap<String, Object> getStatQuery(HashMap<String, Object> queryParameter)
+
+=== look at me
+. tr-process > ZmqWorker.java
+.. run()
+. Handler > getStat.java
+. Client <-> Broker(Proxy 역할) <-> Worker(Server 역할)
+
+[qanda]
+.[red]#Q&A#
+메뉴와 SQL 을 연결하는 방식은?::
+    현구님 도와주세염!!!
+0mq input 에 대한 처리기 매핑은 어디서?::
+
+[plantuml, diagram-classes, png]
+....
+@startuml
+actor 정산담당
+participant 약정
+participant 정산
+
+정산담당 -> 정산: 기표요청(약정번호)
+activate 정산
+
+약정 <- 정산: 약정정보요청(약정번호)
+activate 약정
+약정 -> 정산: 약정정보
+deactivate 약정
+
+정산 -> 정산: 기표정보생성(약정정보)
+
+정산담당 <-- 정산: 기표정보출력
+
+deactivate 정산
+@enduml
+....
+
+
+[plantuml, diagram-classes, png]
+....
+@startuml
+participant 대출
+participant 투자
+participant 정산
+participant 펀딩
+participant 뱅킹
+participant 감독
+
+== 약정 ==
+대출 -> 투자: 대출약정정보 등록
+대출 -> 정산: 대출약정정보 등록
+
+alt PF
+   대출 -> 감독: 대출약정정보 등록
+end
+
+== 펀딩 ==
+alt PF
+   감독 -> 펀딩: 펀딩요청에 의한 펀딩등록
+else
+   대출 -> 펀딩: 담보대출에 의한 펀딩등록
+end
+
+펀딩 -> 뱅킹: 예치금 확인, 투자금 홀딩
+펀딩 -> 투자: 투자여력(전체,차주별 중 작은값) 확인
+펀딩 -> 투자: 펀딩마감시 투자정보 전송
+
+== 기표 ==
+정산 -> 뱅킹: (홀딩된 투자금) 투자 및 대출 실행
+
+== 정산 ==
+뱅킹 -> 정산: 대출자의 원리금 입금 내역
+투자 -> 정산: 원리금 계산을 위한 투자내역 전송
+정산 -> 뱅킹: 원리금 정산 후 지급 실행
+@enduml
+....
